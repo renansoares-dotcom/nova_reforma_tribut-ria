@@ -1,0 +1,2716 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RTC — Calculadora da Reforma Tributária</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --green-950: #071a0d;
+    --green-900: #0d2e17;
+    --green-800: #164524;
+    --green-700: #1e5c30;
+    --green-600: #27743d;
+    --green-500: #2f8c4a;
+    --green-400: #3da55f;
+    --green-300: #5cbf7a;
+    --green-200: #90d8a8;
+    --green-100: #c4efd3;
+    --green-50:  #eaf8ef;
+    --gold: #c8a84b;
+    --gold-light: #e8c97a;
+    --sidebar-w: 240px;
+    --header-h: 60px;
+    --font-display: 'Syne', sans-serif;
+    --font-body: 'DM Sans', sans-serif;
+    --font-mono: 'IBM Plex Mono', monospace;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: var(--font-body);
+    background: #f4f6f4;
+    color: #1a2e1f;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ── HEADER ── */
+  .header {
+    height: var(--header-h);
+    background: var(--green-900);
+    display: flex;
+    align-items: center;
+    padding: 0 1.5rem;
+    gap: 1rem;
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 100;
+    border-bottom: 1px solid var(--green-700);
+  }
+  .header-logo {
+    font-family: var(--font-display);
+    font-size: 20px;
+    font-weight: 800;
+    color: var(--green-200);
+    letter-spacing: -0.5px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .header-logo .badge {
+    background: var(--gold);
+    color: var(--green-950);
+    font-family: var(--font-mono);
+    font-size: 9px;
+    font-weight: 500;
+    padding: 2px 6px;
+    border-radius: 3px;
+    letter-spacing: 1px;
+  }
+  .header-subtitle {
+    font-size: 12px;
+    color: var(--green-400);
+    font-family: var(--font-mono);
+    margin-left: 4px;
+    letter-spacing: 0.5px;
+  }
+  .header-spacer { flex: 1; }
+  .header-api-status {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--green-300);
+  }
+  .api-dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--green-400);
+    animation: pulse 2.5s infinite;
+  }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+  .header-date {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--green-500);
+    padding-left: 1rem;
+    border-left: 1px solid var(--green-700);
+  }
+
+  /* ── LAYOUT ── */
+  .app-body {
+    display: flex;
+    margin-top: var(--header-h);
+    min-height: calc(100vh - var(--header-h));
+  }
+
+  /* ── SIDEBAR ── */
+  .sidebar {
+    width: var(--sidebar-w);
+    background: var(--green-900);
+    min-height: 100%;
+    position: fixed;
+    top: var(--header-h);
+    left: 0;
+    bottom: 0;
+    overflow-y: auto;
+    border-right: 1px solid var(--green-700);
+    padding: 1.5rem 0 2rem;
+  }
+  .sidebar-section {
+    padding: 0 0 1.5rem;
+  }
+  .sidebar-section-title {
+    font-family: var(--font-mono);
+    font-size: 9px;
+    font-weight: 500;
+    color: var(--green-500);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    padding: 0 1.25rem 0.5rem;
+  }
+  .sidebar-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 1.25rem;
+    cursor: pointer;
+    font-size: 13.5px;
+    color: var(--green-300);
+    transition: all .15s;
+    border-left: 3px solid transparent;
+    font-weight: 400;
+  }
+  .sidebar-item:hover {
+    background: rgba(39,116,61,.2);
+    color: var(--green-100);
+    border-left-color: var(--green-600);
+  }
+  .sidebar-item.active {
+    background: rgba(39,116,61,.3);
+    color: #fff;
+    border-left-color: var(--green-400);
+    font-weight: 500;
+  }
+  .sidebar-item svg {
+    width: 16px; height: 16px;
+    flex-shrink: 0;
+    opacity: .8;
+  }
+  .sidebar-divider {
+    border: none;
+    border-top: 1px solid var(--green-800);
+    margin: 0.5rem 1.25rem 1rem;
+  }
+  .sidebar-item .badge-count {
+    margin-left: auto;
+    background: var(--green-700);
+    color: var(--green-200);
+    font-family: var(--font-mono);
+    font-size: 10px;
+    padding: 1px 6px;
+    border-radius: 10px;
+  }
+
+  /* ── MAIN CONTENT ── */
+  .main {
+    margin-left: var(--sidebar-w);
+    flex: 1;
+    padding: 2rem 2rem 3rem;
+    min-width: 0;
+  }
+
+  /* ── PAGE HEADER ── */
+  .page-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 2rem;
+  }
+  .page-title {
+    font-family: var(--font-display);
+    font-size: 26px;
+    font-weight: 700;
+    color: var(--green-900);
+    letter-spacing: -0.5px;
+    line-height: 1.2;
+  }
+  .page-subtitle {
+    font-size: 13px;
+    color: #5a7a5e;
+    margin-top: 4px;
+    font-weight: 300;
+  }
+
+  /* ── CARDS ── */
+  .card {
+    background: #fff;
+    border-radius: 12px;
+    border: 1px solid #d4e4d8;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+  }
+  .card-title {
+    font-family: var(--font-display);
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--green-800);
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .card-title svg { width: 16px; height: 16px; color: var(--green-500); }
+
+  /* ── KPI GRID ── */
+  .kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+  }
+  .kpi-card {
+    background: #fff;
+    border: 1px solid #d4e4d8;
+    border-radius: 12px;
+    padding: 1.25rem 1.25rem 1rem;
+    border-top: 3px solid var(--green-400);
+  }
+  .kpi-label {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--green-600);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+  .kpi-value {
+    font-family: var(--font-display);
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--green-900);
+    line-height: 1;
+  }
+  .kpi-sub {
+    font-size: 11px;
+    color: #7a9e7e;
+    margin-top: 4px;
+    font-family: var(--font-mono);
+  }
+
+  /* ── FORM ── */
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+  .form-grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; }
+  .form-group { display: flex; flex-direction: column; gap: 5px; }
+  .form-group label {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: 500;
+    color: var(--green-700);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+  .form-group input, .form-group select {
+    padding: 8px 12px;
+    border: 1px solid #c4d8c8;
+    border-radius: 8px;
+    font-family: var(--font-body);
+    font-size: 13.5px;
+    color: var(--green-900);
+    background: #f8fbf8;
+    outline: none;
+    transition: border-color .15s, box-shadow .15s;
+  }
+  .form-group input:focus, .form-group select:focus {
+    border-color: var(--green-400);
+    box-shadow: 0 0 0 3px rgba(45,140,74,.12);
+    background: #fff;
+  }
+  .form-group .hint {
+    font-size: 11px;
+    color: #7a9e7e;
+    font-family: var(--font-mono);
+  }
+
+  /* ── ITEMS TABLE ── */
+  .items-table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  thead tr { background: var(--green-50); }
+  th {
+    text-align: left;
+    padding: 9px 12px;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--green-700);
+    font-weight: 500;
+    border-bottom: 1px solid #d4e4d8;
+    white-space: nowrap;
+  }
+  td {
+    padding: 9px 12px;
+    border-bottom: 1px solid #edf5ee;
+    color: #2a3e2e;
+    vertical-align: middle;
+  }
+  tr:hover td { background: #f8fcf8; }
+  td input {
+    width: 100%;
+    padding: 5px 8px;
+    border: 1px solid #c4d8c8;
+    border-radius: 6px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--green-900);
+    background: #fff;
+    outline: none;
+  }
+  td input:focus { border-color: var(--green-400); box-shadow: 0 0 0 2px rgba(45,140,74,.1); }
+
+  /* ── BUTTONS ── */
+  .btn {
+    padding: 9px 18px;
+    border-radius: 8px;
+    font-family: var(--font-display);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all .15s;
+    border: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+  }
+  .btn-primary {
+    background: var(--green-700);
+    color: #fff;
+  }
+  .btn-primary:hover { background: var(--green-600); transform: translateY(-1px); box-shadow: 0 4px 12px rgba(39,116,61,.3); }
+  .btn-primary:active { transform: translateY(0); }
+  .btn-secondary {
+    background: transparent;
+    color: var(--green-700);
+    border: 1px solid var(--green-300);
+  }
+  .btn-secondary:hover { background: var(--green-50); }
+  .btn-danger {
+    background: transparent;
+    color: #c0392b;
+    border: 1px solid #f5b7b1;
+    padding: 5px 10px;
+    font-size: 12px;
+  }
+  .btn-danger:hover { background: #fdf0ee; }
+  .btn-sm { padding: 6px 12px; font-size: 12px; }
+  .btn-gold {
+    background: var(--gold);
+    color: var(--green-950);
+  }
+  .btn-gold:hover { background: var(--gold-light); }
+
+  .btn-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 1.5rem;
+    flex-wrap: wrap;
+  }
+
+  /* ── RESULTADO ── */
+  .resultado-wrap {
+    background: var(--green-900);
+    border-radius: 12px;
+    color: #fff;
+    padding: 1.75rem;
+    margin-top: 1.5rem;
+    display: none;
+  }
+  .resultado-wrap.visible { display: block; }
+  .resultado-title {
+    font-family: var(--font-display);
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--green-300);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 1.25rem;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .resultado-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1px;
+    background: var(--green-700);
+    border-radius: 8px;
+    overflow: hidden;
+    margin-bottom: 1.25rem;
+  }
+  .resultado-item {
+    background: var(--green-800);
+    padding: 1rem 1.25rem;
+  }
+  .resultado-label {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--green-400);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+  .resultado-value {
+    font-family: var(--font-display);
+    font-size: 22px;
+    font-weight: 700;
+    color: #fff;
+  }
+  .resultado-value.highlight { color: var(--gold-light); }
+  .resultado-sub {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--green-400);
+    margin-top: 3px;
+  }
+  .resultado-json {
+    background: var(--green-950);
+    border-radius: 8px;
+    padding: 1rem;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--green-300);
+    max-height: 280px;
+    overflow-y: auto;
+    white-space: pre-wrap;
+    word-break: break-all;
+    line-height: 1.7;
+    border: 1px solid var(--green-800);
+    display: none;
+  }
+  .resultado-json.visible { display: block; }
+
+  /* ── TOAST ── */
+  .toast {
+    position: fixed;
+    bottom: 2rem;
+    right: 2rem;
+    background: var(--green-800);
+    color: #fff;
+    padding: 12px 20px;
+    border-radius: 10px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    z-index: 999;
+    display: none;
+    gap: 8px;
+    align-items: center;
+    box-shadow: 0 8px 24px rgba(0,0,0,.2);
+    border-left: 3px solid var(--green-400);
+  }
+  .toast.error { border-left-color: #e74c3c; background: #2e0f0f; }
+  .toast.visible { display: flex; }
+
+  /* ── LOADING ── */
+  .loading-overlay {
+    display: none;
+    position: absolute;
+    inset: 0;
+    background: rgba(255,255,255,.8);
+    border-radius: 12px;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .loading-overlay.visible { display: flex; }
+  .spinner {
+    width: 32px; height: 32px;
+    border: 3px solid var(--green-100);
+    border-top-color: var(--green-500);
+    border-radius: 50%;
+    animation: spin .8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .loading-text {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--green-600);
+  }
+
+  /* ── HISTORY ── */
+  .history-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 14px;
+    border: 1px solid #d4e4d8;
+    border-radius: 10px;
+    margin-bottom: 10px;
+    background: #fff;
+    cursor: pointer;
+    transition: all .15s;
+  }
+  .history-item:hover { border-color: var(--green-400); background: var(--green-50); }
+  .history-icon {
+    width: 36px; height: 36px;
+    background: var(--green-50);
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--green-600);
+    flex-shrink: 0;
+  }
+  .history-info { flex: 1; min-width: 0; }
+  .history-id {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--green-700);
+    margin-bottom: 2px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .history-meta {
+    font-size: 12px;
+    color: #7a9e7e;
+  }
+  .history-valor {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 15px;
+    color: var(--green-800);
+    white-space: nowrap;
+  }
+  .badge-status {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    padding: 3px 8px;
+    border-radius: 20px;
+    letter-spacing: .5px;
+  }
+  .badge-ok { background: var(--green-50); color: var(--green-700); border: 1px solid var(--green-200); }
+  .badge-err { background: #fdf0ee; color: #c0392b; border: 1px solid #f5b7b1; }
+
+  /* ── TABS ── */
+  .tabs {
+    display: flex;
+    gap: 0;
+    border-bottom: 2px solid #d4e4d8;
+    margin-bottom: 1.5rem;
+  }
+  .tab {
+    padding: 9px 20px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--green-600);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -2px;
+    transition: all .15s;
+    letter-spacing: .5px;
+  }
+  .tab:hover { color: var(--green-800); }
+  .tab.active {
+    color: var(--green-800);
+    border-bottom-color: var(--green-600);
+    font-weight: 600;
+  }
+
+  /* ── CONSULTA DADOS ABERTOS ── */
+  .dado-card {
+    background: #f8fcf8;
+    border: 1px solid #d4e4d8;
+    border-radius: 10px;
+    padding: 1rem;
+    margin-bottom: 10px;
+  }
+  .dado-key {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--green-600);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 4px;
+  }
+  .dado-val {
+    font-size: 13.5px;
+    color: var(--green-900);
+    font-weight: 400;
+  }
+  .dado-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+
+  /* ── ALIQUOTA DISPLAY ── */
+  .aliquota-box {
+    background: var(--green-800);
+    border-radius: 12px;
+    padding: 1.5rem;
+    color: #fff;
+    display: none;
+  }
+  .aliquota-box.visible { display: block; }
+  .aliq-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; background: var(--green-600); border-radius: 8px; overflow: hidden; margin-top: 1rem; }
+  .aliq-item { background: var(--green-700); padding: .875rem 1rem; }
+  .aliq-label { font-family: var(--font-mono); font-size: 9px; color: var(--green-300); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px; }
+  .aliq-val { font-family: var(--font-display); font-size: 20px; font-weight: 700; color: #fff; }
+
+  /* ── PAGES ── */
+  .page { display: none; }
+  .page.active { display: block; }
+
+  /* ── DASHBOARD ── */
+  .dash-split { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+  .empty-state {
+    text-align: center;
+    padding: 2.5rem 1rem;
+    color: #7a9e7e;
+  }
+  .empty-state svg { width: 40px; height: 40px; margin: 0 auto 12px; opacity: .4; display: block; }
+  .empty-state p { font-family: var(--font-mono); font-size: 12px; }
+
+  .api-config-bar {
+    background: var(--green-50);
+    border: 1px solid var(--green-200);
+    border-radius: 10px;
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 1.5rem;
+    font-size: 13px;
+  }
+  .api-config-bar label { font-family: var(--font-mono); font-size: 10px; color: var(--green-700); text-transform: uppercase; letter-spacing: 1px; white-space: nowrap; }
+  .api-config-bar input { flex: 1; padding: 6px 10px; border: 1px solid #c4d8c8; border-radius: 7px; font-family: var(--font-mono); font-size: 12px; outline: none; background: #fff; }
+  .api-config-bar input:focus { border-color: var(--green-400); }
+
+  .warning-banner {
+    background: #fff8e6;
+    border: 1px solid #f0c060;
+    border-radius: 10px;
+    padding: 10px 14px;
+    font-size: 12px;
+    color: #7a5c00;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 1.25rem;
+    font-family: var(--font-mono);
+    display: none;
+  }
+  .warning-banner.visible { display: flex; }
+
+  .rodape {
+    margin-left: var(--sidebar-w);
+    padding: 1rem 2rem;
+    background: var(--green-900);
+    border-top: 1px solid var(--green-700);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .rodape span {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--green-500);
+    letter-spacing: .5px;
+  }
+
+  /* ── EMPRESA SELECTOR (header) ── */
+  .empresa-selector {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(255,255,255,.07);
+    border: 1px solid var(--green-700);
+    border-radius: 8px;
+    padding: 5px 10px 5px 12px;
+    cursor: pointer;
+    transition: background .15s;
+    min-width: 0;
+    max-width: 240px;
+  }
+  .empresa-selector:hover { background: rgba(255,255,255,.12); }
+  .empresa-selector .emp-avatar {
+    width: 26px; height: 26px;
+    border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--font-display);
+    font-size: 11px;
+    font-weight: 700;
+    flex-shrink: 0;
+    background: var(--green-600);
+    color: #fff;
+  }
+  .empresa-selector .emp-info { flex:1; min-width:0; overflow:hidden; }
+  .empresa-selector .emp-nome {
+    font-family: var(--font-body);
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--green-100);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .empresa-selector .emp-cnpj {
+    font-family: var(--font-mono);
+    font-size: 9px;
+    color: var(--green-400);
+    white-space: nowrap;
+  }
+  .empresa-selector .emp-chevron {
+    color: var(--green-400);
+    flex-shrink: 0;
+  }
+  .emp-none {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--green-400);
+    font-style: italic;
+  }
+
+  /* ── EMPRESA DROPDOWN ── */
+  .emp-dropdown {
+    position: fixed;
+    top: calc(var(--header-h) + 6px);
+    right: 180px;
+    background: var(--green-900);
+    border: 1px solid var(--green-700);
+    border-radius: 12px;
+    width: 280px;
+    z-index: 200;
+    box-shadow: 0 16px 40px rgba(0,0,0,.4);
+    display: none;
+    overflow: hidden;
+  }
+  .emp-dropdown.open { display: block; }
+  .emp-dropdown-header {
+    padding: 12px 14px 10px;
+    border-bottom: 1px solid var(--green-800);
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--green-400);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .emp-dropdown-list { max-height: 260px; overflow-y: auto; padding: 6px; }
+  .emp-dropdown-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 10px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background .12s;
+    border: 1px solid transparent;
+  }
+  .emp-dropdown-item:hover { background: rgba(255,255,255,.07); }
+  .emp-dropdown-item.selected {
+    background: rgba(61,165,95,.15);
+    border-color: var(--green-700);
+  }
+  .emp-dropdown-item .dd-avatar {
+    width: 32px; height: 32px;
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--font-display);
+    font-size: 12px;
+    font-weight: 700;
+    color: #fff;
+    flex-shrink: 0;
+  }
+  .emp-dropdown-item .dd-info { flex:1; min-width:0; }
+  .emp-dropdown-item .dd-nome {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--green-100);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .emp-dropdown-item .dd-meta {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--green-500);
+  }
+  .emp-dropdown-item .dd-check {
+    color: var(--green-400);
+    flex-shrink: 0;
+    visibility: hidden;
+  }
+  .emp-dropdown-item.selected .dd-check { visibility: visible; }
+  .emp-dropdown-footer {
+    padding: 8px;
+    border-top: 1px solid var(--green-800);
+  }
+  .emp-btn-novo {
+    width: 100%;
+    padding: 8px;
+    background: rgba(39,116,61,.3);
+    border: 1px dashed var(--green-600);
+    border-radius: 8px;
+    color: var(--green-300);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    cursor: pointer;
+    transition: all .15s;
+    display: flex; align-items: center; justify-content: center; gap: 6px;
+  }
+  .emp-btn-novo:hover { background: rgba(39,116,61,.5); color: var(--green-100); }
+
+  /* ── PÁGINA EMPRESAS ── */
+  .empresa-card {
+    background: #fff;
+    border: 1px solid #d4e4d8;
+    border-radius: 12px;
+    padding: 1.25rem;
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    transition: all .15s;
+    position: relative;
+  }
+  .empresa-card:hover { border-color: var(--green-400); box-shadow: 0 2px 12px rgba(39,116,61,.1); }
+  .empresa-card.ativa {
+    border-color: var(--green-500);
+    border-width: 2px;
+    background: var(--green-50);
+  }
+  .empresa-card .ec-avatar {
+    width: 48px; height: 48px;
+    border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--font-display);
+    font-size: 18px;
+    font-weight: 700;
+    color: #fff;
+    flex-shrink: 0;
+  }
+  .empresa-card .ec-info { flex: 1; min-width: 0; }
+  .empresa-card .ec-nome {
+    font-family: var(--font-display);
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--green-900);
+    margin-bottom: 3px;
+  }
+  .empresa-card .ec-meta {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: #6a8e6e;
+    display: flex;
+    gap: 14px;
+    flex-wrap: wrap;
+  }
+  .empresa-card .ec-actions { display: flex; gap: 8px; align-items: center; }
+  .badge-ativa {
+    position: absolute;
+    top: 10px; right: 60px;
+    background: var(--green-600);
+    color: #fff;
+    font-family: var(--font-mono);
+    font-size: 9px;
+    padding: 3px 8px;
+    border-radius: 20px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+
+  /* ── MODAL EMPRESA ── */
+  .modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,.55);
+    z-index: 300;
+    display: none;
+    align-items: center;
+    justify-content: center;
+  }
+  .modal-backdrop.open { display: flex; }
+  .modal {
+    background: #fff;
+    border-radius: 16px;
+    width: 580px;
+    max-width: calc(100vw - 2rem);
+    max-height: calc(100vh - 4rem);
+    overflow-y: auto;
+    box-shadow: 0 24px 64px rgba(0,0,0,.25);
+  }
+  .modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1.25rem 1.5rem 1rem;
+    border-bottom: 1px solid #e4ede6;
+    position: sticky;
+    top: 0;
+    background: #fff;
+    z-index: 1;
+    border-radius: 16px 16px 0 0;
+  }
+  .modal-title {
+    font-family: var(--font-display);
+    font-size: 17px;
+    font-weight: 700;
+    color: var(--green-900);
+  }
+  .modal-close {
+    width: 32px; height: 32px;
+    border-radius: 8px;
+    border: none;
+    background: #f0f4f1;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    color: #5a7a5e;
+    font-size: 16px;
+    transition: background .15s;
+  }
+  .modal-close:hover { background: #e0ebe2; }
+  .modal-body { padding: 1.5rem; }
+  .modal-footer {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+    padding: 1rem 1.5rem 1.25rem;
+    border-top: 1px solid #e4ede6;
+    background: #f8fbf8;
+    border-radius: 0 0 16px 16px;
+  }
+  .form-section-title {
+    font-family: var(--font-mono);
+    font-size: 9px;
+    font-weight: 500;
+    color: var(--green-500);
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    margin: 1.25rem 0 .75rem;
+    padding-bottom: .4rem;
+    border-bottom: 1px solid #e4ede6;
+  }
+  .form-section-title:first-child { margin-top: 0; }
+
+  /* Empresa ativa banner no topo das páginas */
+  .empresa-ativa-bar {
+    background: linear-gradient(90deg, var(--green-800) 0%, var(--green-700) 100%);
+    border-radius: 10px;
+    padding: 10px 16px;
+    display: none;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 1.5rem;
+    border: 1px solid var(--green-600);
+  }
+  .empresa-ativa-bar.visible { display: flex; }
+  .empresa-ativa-bar .eab-avatar {
+    width: 30px; height: 30px;
+    border-radius: 7px;
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--font-display);
+    font-size: 11px;
+    font-weight: 700;
+    color: #fff;
+    flex-shrink: 0;
+  }
+  .empresa-ativa-bar .eab-nome {
+    font-family: var(--font-body);
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--green-100);
+  }
+  .empresa-ativa-bar .eab-detalhe {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--green-400);
+  }
+  .empresa-ativa-bar .eab-right {
+    margin-left: auto;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--green-400);
+  }
+
+  /* Cor palette para avatares */
+  .av-1 { background: #1e5c30; }
+  .av-2 { background: #1a4a6e; }
+  .av-3 { background: #6e1a4e; }
+  .av-4 { background: #6e4e1a; }
+  .av-5 { background: #1a6e6e; }
+  .av-6 { background: #4e1a6e; }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header class="header">
+  <div class="header-logo">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+    RTC Sistema
+    <span class="badge">SERPRO</span>
+  </div>
+  <span class="header-subtitle">Calculadora Reforma Tributária</span>
+  <div class="header-spacer"></div>
+  <div class="header-api-status">
+    <span class="api-dot"></span>
+    <span id="api-status-text">API conectada</span>
+  </div>
+
+  <!-- SELETOR DE EMPRESA -->
+  <div class="empresa-selector" onclick="toggleEmpDropdown()" id="empresa-selector-btn">
+    <div class="emp-avatar av-1" id="hdr-emp-avatar">—</div>
+    <div class="emp-info">
+      <div class="emp-nome" id="hdr-emp-nome"><span class="emp-none">Nenhuma empresa</span></div>
+      <div class="emp-cnpj" id="hdr-emp-cnpj">Selecione ou cadastre</div>
+    </div>
+    <div class="emp-chevron">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+    </div>
+  </div>
+
+  <div class="header-date" id="header-date"></div>
+</header>
+
+<!-- DROPDOWN EMPRESAS -->
+<div class="emp-dropdown" id="emp-dropdown">
+  <div class="emp-dropdown-header">
+    <span>Empresas cadastradas</span>
+    <span id="emp-dropdown-count" style="color:var(--green-300);">0</span>
+  </div>
+  <div class="emp-dropdown-list" id="emp-dropdown-list">
+    <div style="padding:16px;text-align:center;font-family:var(--font-mono);font-size:11px;color:var(--green-500);">Nenhuma empresa cadastrada</div>
+  </div>
+  <div class="emp-dropdown-footer">
+    <button class="emp-btn-novo" onclick="abrirModalEmpresa(); fecharEmpDropdown();">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      Cadastrar nova empresa
+    </button>
+  </div>
+</div>
+
+<!-- LAYOUT -->
+<div class="app-body">
+
+  <!-- SIDEBAR -->
+  <nav class="sidebar">
+    <div class="sidebar-section">
+      <div class="sidebar-section-title">Principal</div>
+      <div class="sidebar-item active" data-page="dashboard">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+        Dashboard
+      </div>
+      <div class="sidebar-item" data-page="calculadora">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="6" x2="16" y2="6"/><line x1="8" y1="10" x2="16" y2="10"/><line x1="8" y1="14" x2="12" y2="14"/></svg>
+        Calculadora RTC
+      </div>
+      <div class="sidebar-item" data-page="historico">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        Histórico
+        <span class="badge-count" id="history-badge">0</span>
+      </div>
+    </div>
+    <hr class="sidebar-divider">
+    <div class="sidebar-section">
+      <div class="sidebar-section-title">Dados Abertos</div>
+      <div class="sidebar-item" data-page="aliquotas">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+        Alíquotas
+      </div>
+      <div class="sidebar-item" data-page="ncm">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 7H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
+        NCM / NBS
+      </div>
+      <div class="sidebar-item" data-page="municipios">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+        Municípios / UFs
+      </div>
+      <div class="sidebar-item" data-page="classificacoes">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+        Classificações
+      </div>
+    </div>
+    <hr class="sidebar-divider">
+    <div class="sidebar-section">
+      <div class="sidebar-section-title">Cadastro</div>
+      <div class="sidebar-item" data-page="empresas">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+        Empresas
+        <span class="badge-count" id="empresas-badge">0</span>
+      </div>
+    </div>
+    <hr class="sidebar-divider">
+    <div class="sidebar-section">
+      <div class="sidebar-section-title">Sistema</div>
+      <div class="sidebar-item" data-page="versao">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+        Versão / Status
+      </div>
+      <div class="sidebar-item" data-page="configuracoes">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93l-1.41 1.41M5.34 18.66l-1.41 1.41M20 12h-2M6 12H4M17.66 17.66l-1.41-1.41M6.75 6.75L5.34 5.34M12 4V2m0 20v-2"/></svg>
+        Configurações
+      </div>
+    </div>
+  </nav>
+
+  <!-- MAIN -->
+  <main class="main">
+
+    <!-- API CONFIG BAR -->
+    <div class="api-config-bar">
+      <label>Base URL</label>
+      <input type="text" id="api-base-url" value="https://minha-api.com.br/api" placeholder="https://sua-api.com/api">
+      <button class="btn btn-sm btn-secondary" onclick="testarConexao()">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+        Testar
+      </button>
+    </div>
+
+    <!-- EMPRESA ATIVA BAR (aparece em todas as páginas) -->
+    <div class="empresa-ativa-bar" id="empresa-ativa-bar">
+      <div class="eab-avatar av-1" id="eab-avatar">??</div>
+      <div>
+        <div class="eab-nome" id="eab-nome">—</div>
+        <div class="eab-detalhe" id="eab-detalhe">—</div>
+      </div>
+      <div class="eab-right" id="eab-right">—</div>
+    </div>
+
+    <div class="warning-banner" id="warning-banner">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+      <span id="warning-text"></span>
+    </div>
+
+    <!-- ── EMPRESAS ── -->
+    <div class="page" id="page-empresas">
+      <div class="page-header">
+        <div>
+          <div class="page-title">Empresas</div>
+          <div class="page-subtitle">Cadastre e gerencie múltiplas empresas — cada uma com seus parâmetros individuais</div>
+        </div>
+        <button class="btn btn-primary" onclick="abrirModalEmpresa()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Nova empresa
+        </button>
+      </div>
+
+      <!-- KPIs -->
+      <div class="kpi-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:1.5rem;">
+        <div class="kpi-card">
+          <div class="kpi-label">Empresas cadastradas</div>
+          <div class="kpi-value" id="emp-kpi-total">0</div>
+          <div class="kpi-sub">Esta sessão</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Empresa ativa</div>
+          <div class="kpi-value" style="font-size:16px;line-height:1.3;" id="emp-kpi-ativa">—</div>
+          <div class="kpi-sub" id="emp-kpi-ativa-cnpj">Nenhuma selecionada</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Regime tributário</div>
+          <div class="kpi-value" style="font-size:16px;" id="emp-kpi-regime">—</div>
+          <div class="kpi-sub" id="emp-kpi-uf">UF não definida</div>
+        </div>
+      </div>
+
+      <!-- Lista de empresas -->
+      <div id="empresas-lista">
+        <div class="empty-state" style="padding:4rem 1rem;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="width:44px;height:44px;margin:0 auto 14px;display:block;opacity:.35;"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+          <p style="font-family:var(--font-mono);font-size:12px;color:#7a9e7e;">Nenhuma empresa cadastrada ainda</p>
+          <p style="font-size:12px;color:#aac8ae;margin-top:6px;">Clique em "Nova empresa" para começar</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── DASHBOARD ── -->
+    <div class="page active" id="page-dashboard">
+      <div class="page-header">
+        <div>
+          <div class="page-title">Dashboard</div>
+          <div class="page-subtitle">Visão geral do sistema RTC — Reforma Tributária CBS/IBS/IS</div>
+        </div>
+        <button class="btn btn-primary" onclick="navegarPara('calculadora')">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Novo cálculo
+        </button>
+      </div>
+      <div class="kpi-grid">
+        <div class="kpi-card">
+          <div class="kpi-label">Total calculado</div>
+          <div class="kpi-value" id="kpi-total">R$ 0</div>
+          <div class="kpi-sub">Soma CBS+IBS</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Operações</div>
+          <div class="kpi-value" id="kpi-ops">0</div>
+          <div class="kpi-sub">Esta sessão</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Sucessos</div>
+          <div class="kpi-value" id="kpi-ok">0</div>
+          <div class="kpi-sub" id="kpi-ok-pct">—</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Erros</div>
+          <div class="kpi-value" id="kpi-err">0</div>
+          <div class="kpi-sub">Falhas API</div>
+        </div>
+      </div>
+      <div class="dash-split">
+        <div class="card">
+          <div class="card-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            Últimos cálculos
+          </div>
+          <div id="dash-history">
+            <div class="empty-state">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+              <p>Nenhum cálculo realizado ainda</p>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+            Como usar o sistema
+          </div>
+          <div style="display:flex; flex-direction:column; gap:10px;">
+
+            <div style="display:flex; gap:12px; align-items:flex-start; padding:10px 12px; background:var(--green-50); border-radius:9px; border-left:3px solid var(--green-500);">
+              <div style="width:24px; height:24px; border-radius:50%; background:var(--green-700); color:#fff; font-family:var(--font-display); font-size:11px; font-weight:700; display:flex; align-items:center; justify-content:center; flex-shrink:0; margin-top:1px;">1</div>
+              <div>
+                <div style="font-size:13px; font-weight:500; color:var(--green-900); margin-bottom:2px;">Cadastre sua empresa</div>
+                <div style="font-size:12px; color:#5a7a5e; line-height:1.6;">Acesse <strong>Empresas</strong> no menu lateral, clique em "Nova empresa" e preencha CNPJ, UF, município e regime tributário. Cada empresa pode ter sua própria URL de API e token.</div>
+              </div>
+            </div>
+
+            <div style="display:flex; gap:12px; align-items:flex-start; padding:10px 12px; background:var(--green-50); border-radius:9px; border-left:3px solid var(--green-500);">
+              <div style="width:24px; height:24px; border-radius:50%; background:var(--green-700); color:#fff; font-family:var(--font-display); font-size:11px; font-weight:700; display:flex; align-items:center; justify-content:center; flex-shrink:0; margin-top:1px;">2</div>
+              <div>
+                <div style="font-size:13px; font-weight:500; color:var(--green-900); margin-bottom:2px;">Selecione a empresa ativa</div>
+                <div style="font-size:12px; color:#5a7a5e; line-height:1.6;">Clique no seletor no canto superior direito do header. O sistema carrega automaticamente os parâmetros — UF, município, CST e NCM padrão — da empresa escolhida.</div>
+              </div>
+            </div>
+
+            <div style="display:flex; gap:12px; align-items:flex-start; padding:10px 12px; background:var(--green-50); border-radius:9px; border-left:3px solid var(--green-500);">
+              <div style="width:24px; height:24px; border-radius:50%; background:var(--green-700); color:#fff; font-family:var(--font-display); font-size:11px; font-weight:700; display:flex; align-items:center; justify-content:center; flex-shrink:0; margin-top:1px;">3</div>
+              <div>
+                <div style="font-size:13px; font-weight:500; color:var(--green-900); margin-bottom:2px;">Calcule os tributos</div>
+                <div style="font-size:12px; color:#5a7a5e; line-height:1.6;">Vá em <strong>Calculadora RTC</strong>, adicione os itens da operação (NCM/NBS, CST, base de cálculo) e clique em "Calcular tributos". O resultado exibe CBS, IBS e total calculado.</div>
+              </div>
+            </div>
+
+            <div style="display:flex; gap:12px; align-items:flex-start; padding:10px 12px; background:var(--green-50); border-radius:9px; border-left:3px solid var(--green-500);">
+              <div style="width:24px; height:24px; border-radius:50%; background:var(--green-700); color:#fff; font-family:var(--font-display); font-size:11px; font-weight:700; display:flex; align-items:center; justify-content:center; flex-shrink:0; margin-top:1px;">4</div>
+              <div>
+                <div style="font-size:13px; font-weight:500; color:var(--green-900); margin-bottom:2px;">Consulte dados de referência</div>
+                <div style="font-size:12px; color:#5a7a5e; line-height:1.6;">Use as abas <strong>Alíquotas</strong>, <strong>NCM/NBS</strong>, <strong>Municípios</strong> e <strong>Classificações</strong> para pesquisar tabelas da Receita Federal e preencher corretamente os campos do cálculo.</div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── CALCULADORA ── -->
+    <div class="page" id="page-calculadora">
+      <div class="page-header">
+        <div>
+          <div class="page-title">Calculadora RTC</div>
+          <div class="page-subtitle">Regime Geral — CBS / IBS / Imposto Seletivo</div>
+        </div>
+        <button class="btn btn-secondary btn-sm" onclick="limparFormulario()">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.21"/></svg>
+          Limpar
+        </button>
+      </div>
+
+      <div class="card" style="position:relative;">
+        <div class="loading-overlay" id="loading-calculo">
+          <div class="spinner"></div>
+          <div class="loading-text">Calculando tributos...</div>
+        </div>
+
+        <div class="card-title">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="12" y1="8" x2="12" y2="16"/></svg>
+          Dados da Operação
+        </div>
+        <div class="form-grid">
+          <div class="form-group">
+            <label>ID da Operação (ROC)</label>
+            <input type="text" id="op-id" placeholder="ex: 507f1f77bcf86cd799439011">
+            <span class="hint">Identificador único do documento</span>
+          </div>
+          <div class="form-group">
+            <label>Versão</label>
+            <input type="text" id="op-versao" value="1.0.0" placeholder="ex: 1.0.0">
+          </div>
+          <div class="form-group">
+            <label>Data/Hora Fato Gerador</label>
+            <input type="datetime-local" id="op-data">
+          </div>
+          <div class="form-group">
+            <label>Município (IBGE)</label>
+            <input type="number" id="op-municipio" placeholder="ex: 4314902 (Porto Alegre)">
+            <span class="hint">Código IBGE do município</span>
+          </div>
+          <div class="form-group">
+            <label>UF</label>
+            <select id="op-uf">
+              <option value="">Selecione</option>
+              <option>AC</option><option>AL</option><option>AM</option><option>AP</option>
+              <option>BA</option><option>CE</option><option>DF</option><option>ES</option>
+              <option>GO</option><option>MA</option><option>MG</option><option>MS</option>
+              <option>MT</option><option>PA</option><option>PB</option><option>PE</option>
+              <option>PI</option><option>PR</option><option>RJ</option><option>RN</option>
+              <option>RO</option><option>RR</option><option>RS</option><option>SC</option>
+              <option>SE</option><option>SP</option><option>TO</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div class="card" style="position:relative;">
+        <div class="card-title">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+          Itens da Operação
+        </div>
+        <div class="items-table-wrap">
+          <table id="items-table">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>NCM</th>
+                <th>NBS</th>
+                <th>CST</th>
+                <th>cClassTrib</th>
+                <th>Base Cálculo</th>
+                <th>Qtd</th>
+                <th>Unidade</th>
+                <th>CST Regular</th>
+                <th>cClass Regular</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="items-body">
+            </tbody>
+          </table>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-secondary btn-sm" onclick="adicionarItem()">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Adicionar item
+          </button>
+          <button class="btn btn-secondary btn-sm" onclick="carregarExemplo()">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+            Carregar exemplo
+          </button>
+        </div>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn btn-primary" onclick="calcularTributos()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+          Calcular tributos
+        </button>
+        <button class="btn btn-gold" onclick="exportarJSON()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Exportar JSON
+        </button>
+      </div>
+
+      <!-- Resultado -->
+      <div class="resultado-wrap" id="resultado-wrap">
+        <div class="resultado-title">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+          Resultado do Cálculo
+        </div>
+        <div class="resultado-grid" id="resultado-grid"></div>
+        <div style="display:flex; gap:10px; margin-top:10px;">
+          <button class="btn btn-sm" style="background:rgba(255,255,255,.1);color:#cde8d4;border:1px solid rgba(255,255,255,.15)" onclick="toggleJSON()">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+            Ver JSON completo
+          </button>
+          <button class="btn btn-sm" style="background:rgba(255,255,255,.1);color:#cde8d4;border:1px solid rgba(255,255,255,.15)" onclick="copiarJSON()">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+            Copiar
+          </button>
+        </div>
+        <pre class="resultado-json" id="resultado-json"></pre>
+      </div>
+    </div>
+
+    <!-- ── HISTÓRICO ── -->
+    <div class="page" id="page-historico">
+      <div class="page-header">
+        <div>
+          <div class="page-title">Histórico de Cálculos</div>
+          <div class="page-subtitle">Operações realizadas nesta sessão</div>
+        </div>
+        <button class="btn btn-danger btn-sm" onclick="limparHistorico()">Limpar histórico</button>
+      </div>
+      <div id="historico-lista">
+        <div class="empty-state" style="padding:4rem 1rem;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          <p>Nenhum cálculo no histórico</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── ALÍQUOTAS ── -->
+    <div class="page" id="page-aliquotas">
+      <div class="page-header">
+        <div>
+          <div class="page-title">Consulta de Alíquotas</div>
+          <div class="page-subtitle">CBS/IBS — União, UF e Município</div>
+        </div>
+      </div>
+      <div class="card" style="position:relative;">
+        <div class="loading-overlay" id="loading-aliquota"><div class="spinner"></div><div class="loading-text">Consultando...</div></div>
+        <div class="card-title">Parâmetros</div>
+        <div class="tabs">
+          <div class="tab active" data-aliq="uniao">União (CBS)</div>
+          <div class="tab" data-aliq="uf">UF (IBS)</div>
+          <div class="tab" data-aliq="municipio">Município (IBS)</div>
+        </div>
+        <div class="form-grid-3">
+          <div class="form-group">
+            <label>Data de Referência</label>
+            <input type="date" id="aliq-data">
+          </div>
+          <div class="form-group" id="aliq-uf-group" style="display:none;">
+            <label>Código UF</label>
+            <input type="number" id="aliq-uf-cod" placeholder="ex: 43 (RS)">
+            <span class="hint">Código numérico IBGE da UF</span>
+          </div>
+          <div class="form-group" id="aliq-mun-group" style="display:none;">
+            <label>Código Município</label>
+            <input type="number" id="aliq-mun-cod" placeholder="ex: 4314902">
+          </div>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-primary" onclick="consultarAliquota()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            Consultar
+          </button>
+        </div>
+        <div class="aliquota-box" id="aliquota-resultado"></div>
+      </div>
+    </div>
+
+    <!-- ── NCM/NBS ── -->
+    <div class="page" id="page-ncm">
+      <div class="page-header">
+        <div>
+          <div class="page-title">Consulta NCM / NBS</div>
+          <div class="page-subtitle">Nomenclatura Comum do Mercosul e Nomenclatura Brasileira de Serviços</div>
+        </div>
+      </div>
+      <div class="card" style="position:relative;">
+        <div class="loading-overlay" id="loading-ncm"><div class="spinner"></div><div class="loading-text">Consultando...</div></div>
+        <div class="tabs">
+          <div class="tab active" data-ncm="ncm">NCM</div>
+          <div class="tab" data-ncm="nbs">NBS</div>
+        </div>
+        <div class="form-grid">
+          <div class="form-group">
+            <label id="ncm-label">Código NCM</label>
+            <input type="text" id="ncm-codigo" placeholder="ex: 24021000">
+            <span class="hint" id="ncm-hint">8 dígitos — Mercadorias</span>
+          </div>
+          <div class="form-group">
+            <label>Data de Referência</label>
+            <input type="date" id="ncm-data">
+          </div>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-primary" onclick="consultarNCMNBS()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            Consultar
+          </button>
+        </div>
+        <div id="ncm-resultado" style="margin-top:1.25rem;display:none;">
+          <div class="dado-grid" id="ncm-dados"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── MUNICÍPIOS ── -->
+    <div class="page" id="page-municipios">
+      <div class="page-header">
+        <div>
+          <div class="page-title">Municípios / UFs</div>
+          <div class="page-subtitle">Consulta de municípios por UF</div>
+        </div>
+      </div>
+      <div class="card" style="position:relative;">
+        <div class="loading-overlay" id="loading-mun"><div class="spinner"></div><div class="loading-text">Carregando...</div></div>
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Sigla da UF</label>
+            <select id="mun-uf">
+              <option value="">Selecione uma UF</option>
+              <option>AC</option><option>AL</option><option>AM</option><option>AP</option>
+              <option>BA</option><option>CE</option><option>DF</option><option>ES</option>
+              <option>GO</option><option>MA</option><option>MG</option><option>MS</option>
+              <option>MT</option><option>PA</option><option>PB</option><option>PE</option>
+              <option>PI</option><option>PR</option><option>RJ</option><option>RN</option>
+              <option>RO</option><option>RR</option><option>RS</option><option>SC</option>
+              <option>SE</option><option>SP</option><option>TO</option>
+            </select>
+          </div>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-primary" onclick="consultarMunicipios()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            Carregar municípios
+          </button>
+        </div>
+        <div id="mun-resultado" style="margin-top:1.25rem;display:none;">
+          <div style="margin-bottom:.75rem; font-family:var(--font-mono); font-size:11px; color:var(--green-600);" id="mun-count"></div>
+          <div style="max-height:350px; overflow-y:auto;">
+            <table style="width:100%;">
+              <thead><tr><th>Código</th><th>Nome</th></tr></thead>
+              <tbody id="mun-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── CLASSIFICAÇÕES ── -->
+    <div class="page" id="page-classificacoes">
+      <div class="page-header">
+        <div>
+          <div class="page-title">Classificações Tributárias</div>
+          <div class="page-subtitle">CBS/IBS e Imposto Seletivo</div>
+        </div>
+      </div>
+      <div class="card" style="position:relative;">
+        <div class="loading-overlay" id="loading-class"><div class="spinner"></div><div class="loading-text">Carregando...</div></div>
+        <div class="tabs">
+          <div class="tab active" data-class="cbs-ibs">CBS / IBS</div>
+          <div class="tab" data-class="is">Imposto Seletivo</div>
+        </div>
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Data de Referência</label>
+            <input type="date" id="class-data">
+          </div>
+          <div class="form-group" id="class-cst-group">
+            <label>CST (opcional)</label>
+            <input type="text" id="class-cst" placeholder="ex: 000" maxlength="3">
+            <span class="hint">Filtra por código de situação tributária</span>
+          </div>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-primary" onclick="consultarClassificacoes()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            Consultar
+          </button>
+        </div>
+        <div id="class-resultado" style="margin-top:1.25rem;display:none;">
+          <div style="margin-bottom:.75rem; font-family:var(--font-mono); font-size:11px; color:var(--green-600);" id="class-count"></div>
+          <div style="max-height:400px; overflow-y:auto;">
+            <table>
+              <thead><tr><th>Código</th><th>Descrição</th><th>Tributo</th><th>CST</th></tr></thead>
+              <tbody id="class-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── VERSÃO ── -->
+    <div class="page" id="page-versao">
+      <div class="page-header">
+        <div>
+          <div class="page-title">Versão / Status</div>
+          <div class="page-subtitle">Informações da aplicação e base de dados</div>
+        </div>
+        <button class="btn btn-secondary btn-sm" onclick="consultarVersao()">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 0-2.12-9.36L23 10"/></svg>
+          Atualizar
+        </button>
+      </div>
+      <div class="card" style="position:relative;">
+        <div class="loading-overlay" id="loading-versao"><div class="spinner"></div><div class="loading-text">Consultando versão...</div></div>
+        <div id="versao-info">
+          <div class="empty-state" style="padding:3rem;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+            <p>Clique em "Atualizar" para consultar</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── CONFIGURAÇÕES ── -->
+    <div class="page" id="page-configuracoes">
+      <div class="page-header">
+        <div>
+          <div class="page-title">Configurações</div>
+          <div class="page-subtitle">Parâmetros de integração com a API RTC</div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">Conexão com a API</div>
+        <div class="form-grid">
+          <div class="form-group">
+            <label>URL Base da API</label>
+            <input type="text" id="cfg-url" placeholder="https://sua-api.com/api">
+            <span class="hint">Sem barra no final</span>
+          </div>
+          <div class="form-group">
+            <label>Timeout (ms)</label>
+            <input type="number" id="cfg-timeout" value="30000" placeholder="30000">
+          </div>
+        </div>
+        <div class="form-group" style="margin-top:1rem;">
+          <label>Token de autorização (opcional)</label>
+          <input type="text" id="cfg-token" placeholder="Bearer ...">
+          <span class="hint">Se a API exigir autenticação</span>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-primary" onclick="salvarConfig()">Salvar configurações</button>
+          <button class="btn btn-secondary" onclick="testarConexao()">Testar conexão</button>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">Dados e Sessão</div>
+        <p style="font-size:13px; color:#4a6e4e; margin-bottom:1rem;">Esta aplicação armazena o histórico apenas na sessão atual (memória do navegador). Nenhum dado é persistido.</p>
+        <button class="btn btn-danger btn-sm" onclick="limparTudo()">Limpar todos os dados da sessão</button>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<!-- MODAL EMPRESA -->
+<div class="modal-backdrop" id="modal-empresa-backdrop" onclick="fecharModalEmpresaSeBg(event)">
+  <div class="modal" id="modal-empresa">
+    <div class="modal-header">
+      <div class="modal-title" id="modal-empresa-titulo">Nova empresa</div>
+      <button class="modal-close" onclick="fecharModalEmpresa()">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="emp-edit-id">
+
+      <div class="form-section-title">Identificação</div>
+      <div class="form-grid">
+        <div class="form-group" style="grid-column:1/-1;">
+          <label>Razão Social *</label>
+          <input type="text" id="emp-razao" placeholder="ex: Empresa ABC Comércio Ltda">
+        </div>
+        <div class="form-group">
+          <label>Nome Fantasia</label>
+          <input type="text" id="emp-fantasia" placeholder="ex: ABC Comércio">
+        </div>
+        <div class="form-group">
+          <label>CNPJ *</label>
+          <input type="text" id="emp-cnpj" placeholder="00.000.000/0000-00" maxlength="18">
+        </div>
+        <div class="form-group">
+          <label>Inscrição Estadual</label>
+          <input type="text" id="emp-ie" placeholder="ex: 012.345.678.910">
+        </div>
+        <div class="form-group">
+          <label>Inscrição Municipal</label>
+          <input type="text" id="emp-im" placeholder="ex: 12345-6">
+        </div>
+      </div>
+
+      <div class="form-section-title">Localização</div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label>UF *</label>
+          <select id="emp-uf">
+            <option value="">Selecione</option>
+            <option>AC</option><option>AL</option><option>AM</option><option>AP</option>
+            <option>BA</option><option>CE</option><option>DF</option><option>ES</option>
+            <option>GO</option><option>MA</option><option>MG</option><option>MS</option>
+            <option>MT</option><option>PA</option><option>PB</option><option>PE</option>
+            <option>PI</option><option>PR</option><option>RJ</option><option>RN</option>
+            <option>RO</option><option>RR</option><option>RS</option><option>SC</option>
+            <option>SE</option><option>SP</option><option>TO</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Cód. Município (IBGE) *</label>
+          <input type="number" id="emp-municipio" placeholder="ex: 4314902">
+          <span class="hint">Usado como padrão na calculadora</span>
+        </div>
+        <div class="form-group" style="grid-column:1/-1;">
+          <label>Endereço</label>
+          <input type="text" id="emp-endereco" placeholder="Rua, número, bairro">
+        </div>
+        <div class="form-group">
+          <label>Cidade</label>
+          <input type="text" id="emp-cidade" placeholder="Nome da cidade">
+        </div>
+        <div class="form-group">
+          <label>CEP</label>
+          <input type="text" id="emp-cep" placeholder="00000-000" maxlength="9">
+        </div>
+      </div>
+
+      <div class="form-section-title">Parâmetros Tributários</div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Regime Tributário *</label>
+          <select id="emp-regime">
+            <option value="">Selecione</option>
+            <option value="SIMPLES">Simples Nacional</option>
+            <option value="PRESUMIDO">Lucro Presumido</option>
+            <option value="REAL">Lucro Real</option>
+            <option value="ARBITRADO">Lucro Arbitrado</option>
+            <option value="MEI">MEI</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Atividade Principal</label>
+          <select id="emp-atividade">
+            <option value="">Selecione</option>
+            <option value="COMERCIO">Comércio</option>
+            <option value="INDUSTRIA">Indústria</option>
+            <option value="SERVICOS">Serviços</option>
+            <option value="MISTO">Misto (Comércio + Serviços)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>CST Padrão CBS/IBS</label>
+          <input type="text" id="emp-cst-padrao" placeholder="ex: 000" maxlength="3">
+          <span class="hint">Pré-preenche novos itens</span>
+        </div>
+        <div class="form-group">
+          <label>cClassTrib Padrão</label>
+          <input type="text" id="emp-ctrib-padrao" placeholder="ex: 000001" maxlength="6">
+        </div>
+        <div class="form-group">
+          <label>NCM Padrão</label>
+          <input type="text" id="emp-ncm-padrao" placeholder="ex: 24021000" maxlength="8">
+        </div>
+        <div class="form-group">
+          <label>Contribuinte CBS/IBS</label>
+          <select id="emp-contribuinte">
+            <option value="SIM">Sim</option>
+            <option value="NAO">Não</option>
+            <option value="PARCIAL">Parcial</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-section-title">Integração API</div>
+      <div class="form-grid">
+        <div class="form-group" style="grid-column:1/-1;">
+          <label>URL Base da API (específica desta empresa)</label>
+          <input type="text" id="emp-api-url" placeholder="Deixe em branco para usar a URL global">
+          <span class="hint">Se vazio, usa a URL global configurada no topo</span>
+        </div>
+        <div class="form-group" style="grid-column:1/-1;">
+          <label>Token de autorização (específico desta empresa)</label>
+          <input type="text" id="emp-api-token" placeholder="Bearer ... (opcional)">
+        </div>
+      </div>
+
+      <div class="form-section-title">Observações</div>
+      <div class="form-group">
+        <label>Notas internas</label>
+        <textarea id="emp-notas" rows="3" style="padding:8px 12px;border:1px solid #c4d8c8;border-radius:8px;font-family:var(--font-body);font-size:13.5px;resize:vertical;outline:none;background:#f8fbf8;" placeholder="Informações adicionais sobre esta empresa..."></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="fecharModalEmpresa()">Cancelar</button>
+      <button class="btn btn-primary" onclick="salvarEmpresa()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+        Salvar empresa
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- FOOTER -->
+<footer class="rodape">
+  <span>RTC Sistema © 2025 — Calculadora da Reforma Tributária</span>
+  <span id="footer-versao">v—</span>
+</footer>
+
+<script>
+const $ = id => document.getElementById(id);
+let historico = [];
+let stats = { total: 0, ok: 0, err: 0, soma: 0 };
+let aliqTab = 'uniao';
+let ncmTab = 'ncm';
+let classTab = 'cbs-ibs';
+let ultimoJSON = null;
+
+function getBaseURL() {
+  return ($('api-base-url').value || 'https://minha-api.com.br/api').replace(/\/$/, '');
+}
+
+function getHeaders() {
+  const token = $('cfg-token') ? $('cfg-token').value : '';
+  const h = { 'Content-Type': 'application/json' };
+  if (token) h['Authorization'] = token;
+  return h;
+}
+
+function toast(msg, tipo = 'ok') {
+  const t = $('toast');
+  t.textContent = msg;
+  t.className = 'toast visible' + (tipo === 'error' ? ' error' : '');
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => t.className = 'toast', 3500);
+}
+
+function setLoading(id, vis) {
+  const el = $(id);
+  if (el) el.className = 'loading-overlay' + (vis ? ' visible' : '');
+}
+
+function navDate() {
+  const d = new Date();
+  $('header-date').textContent = d.toLocaleDateString('pt-BR', { weekday:'short', day:'2-digit', month:'short', year:'numeric' });
+}
+navDate(); setInterval(navDate, 60000);
+
+// Navegação
+document.querySelectorAll('.sidebar-item[data-page]').forEach(item => {
+  item.addEventListener('click', () => navegarPara(item.dataset.page));
+});
+
+function navegarPara(id) {
+  document.querySelectorAll('.sidebar-item').forEach(i => i.classList.remove('active'));
+  document.querySelector(`.sidebar-item[data-page="${id}"]`)?.classList.add('active');
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  $(`page-${id}`)?.classList.add('active');
+  if (id === 'historico') renderHistorico();
+  if (id === 'dashboard') atualizarDash();
+}
+
+// ── Calculadora ──
+function gerarId() {
+  return [...Array(24)].map(() => Math.floor(Math.random()*16).toString(16)).join('');
+}
+
+function adicionarItem(dados = {}) {
+  const tbody = $('items-body');
+  const n = tbody.rows.length + 1;
+  const tr = document.createElement('tr');
+  tr.dataset.num = n;
+  tr.innerHTML = `
+    <td style="font-family:var(--font-mono);font-size:11px;color:var(--green-600);text-align:center;">${n}</td>
+    <td><input type="text" class="item-ncm" placeholder="24021000" value="${dados.ncm||''}" maxlength="8" style="width:90px;"></td>
+    <td><input type="text" class="item-nbs" placeholder="—" value="${dados.nbs||''}" maxlength="9" style="width:90px;"></td>
+    <td><input type="text" class="item-cst" placeholder="000" value="${dados.cst||''}" maxlength="3" style="width:60px;"></td>
+    <td><input type="text" class="item-ctrib" placeholder="000001" value="${dados.cClassTrib||''}" maxlength="6" style="width:75px;"></td>
+    <td><input type="number" class="item-base" placeholder="0.00" value="${dados.baseCalculo||''}" style="width:90px;"></td>
+    <td><input type="number" class="item-qtd" placeholder="1" value="${dados.quantidade||''}" style="width:60px;"></td>
+    <td><input type="text" class="item-un" placeholder="VN" value="${dados.unidade||''}" maxlength="6" style="width:55px;"></td>
+    <td><input type="text" class="item-cst-reg" placeholder="—" value="${dados.tributacaoRegular?.cst||''}" maxlength="3" style="width:60px;"></td>
+    <td><input type="text" class="item-ctrib-reg" placeholder="—" value="${dados.tributacaoRegular?.cClassTrib||''}" maxlength="6" style="width:75px;"></td>
+    <td><button class="btn btn-danger" onclick="this.closest('tr').remove(); renumerarItens();">✕</button></td>
+  `;
+  tbody.appendChild(tr);
+}
+
+function renumerarItens() {
+  document.querySelectorAll('#items-body tr').forEach((tr, i) => {
+    tr.querySelector('td').textContent = i + 1;
+  });
+}
+
+function carregarExemplo() {
+  limparFormulario();
+  $('op-id').value = gerarId();
+  $('op-versao').value = '1.0.0';
+  const now = new Date();
+  now.setMinutes(0,0,0);
+  $('op-data').value = now.toISOString().slice(0,16);
+  $('op-municipio').value = '4314902';
+  $('op-uf').value = 'RS';
+  adicionarItem({ ncm:'24021000', cst:'550', cClassTrib:'550020', baseCalculo:1111, quantidade:222, unidade:'VN', tributacaoRegular:{ cst:'200', cClassTrib:'200032' } });
+  toast('Exemplo carregado');
+}
+
+function limparFormulario() {
+  ['op-id','op-versao','op-data','op-municipio'].forEach(id => $(id).value = '');
+  $('op-uf').value = '';
+  $('items-body').innerHTML = '';
+  $('resultado-wrap').classList.remove('visible');
+}
+
+function coletarItens() {
+  const rows = document.querySelectorAll('#items-body tr');
+  return Array.from(rows).map((tr, i) => {
+    const v = s => tr.querySelector(s)?.value.trim() || '';
+    const item = {
+      numero: i + 1,
+      cst: v('.item-cst') || '000',
+      cClassTrib: v('.item-ctrib') || '000001',
+    };
+    if (v('.item-ncm')) item.ncm = v('.item-ncm');
+    if (v('.item-nbs')) item.nbs = v('.item-nbs');
+    if (v('.item-base')) item.baseCalculo = parseFloat(v('.item-base'));
+    if (v('.item-qtd')) item.quantidade = parseFloat(v('.item-qtd'));
+    if (v('.item-un')) item.unidade = v('.item-un');
+    const cstR = v('.item-cst-reg'), cR = v('.item-ctrib-reg');
+    if (cstR && cR) item.tributacaoRegular = { cst: cstR, cClassTrib: cR };
+    return item;
+  });
+}
+
+async function calcularTributos() {
+  const itens = coletarItens();
+  if (!itens.length) { toast('Adicione pelo menos um item', 'error'); return; }
+  const mun = parseInt($('op-municipio').value);
+  if (!mun) { toast('Informe o código do município', 'error'); return; }
+
+  const dhFG = $('op-data').value;
+  if (!dhFG) { toast('Informe a data/hora do fato gerador', 'error'); return; }
+
+  const d = new Date(dhFG);
+  const offset = -d.getTimezoneOffset();
+  const sign = offset >= 0 ? '+' : '-';
+  const hh = String(Math.floor(Math.abs(offset)/60)).padStart(2,'0');
+  const mm = String(Math.abs(offset)%60).padStart(2,'0');
+  const dhISO = d.toISOString().slice(0,19) + sign + hh + ':' + mm;
+
+  const body = {
+    id: $('op-id').value || gerarId(),
+    versao: $('op-versao').value || '1.0.0',
+    dhFatoGerador: dhISO,
+    municipio: mun,
+    itens
+  };
+  const uf = $('op-uf').value;
+  if (uf) body.uf = uf;
+
+  setLoading('loading-calculo', true);
+  try {
+    const res = await fetch(`${getBaseURL()}/calculadora/regime-geral`, {
+      method: 'POST', headers: getHeaders(), body: JSON.stringify(body)
+    });
+    const warn = res.headers.get('x-warning-dados-simulados');
+    const data = await res.json();
+    setLoading('loading-calculo', false);
+    if (!res.ok) throw new Error(data.title || data.detail || JSON.stringify(data));
+    exibirResultado(data, body.id, warn);
+    registrarHistorico(body.id, true, data, body);
+    if (warn) { $('warning-banner').classList.add('visible'); $('warning-text').textContent = `Atenção: dados simulados (warning ${warn})`; }
+    toast('Cálculo realizado com sucesso');
+  } catch (e) {
+    setLoading('loading-calculo', false);
+    registrarHistorico($('op-id').value || '—', false, null, body);
+    toast('Erro: ' + e.message, 'error');
+  }
+}
+
+function exibirResultado(data, id, warn) {
+  ultimoJSON = data;
+  const wrap = $('resultado-wrap');
+  const grid = $('resultado-grid');
+  wrap.classList.add('visible');
+
+  // Tenta extrair CBS e IBS do ROC
+  let cbs = '—', ibs = '—', total = '—';
+  try {
+    const totais = data.totais || data.total || {};
+    const cbsVal = totais.cbs?.tributo || totais.CBS?.tributo || 0;
+    const ibsVal = (totais.ibsuf?.tributo || 0) + (totais.ibsMun?.tributo || 0) + (totais.IBS?.tributo || 0);
+    const isVal = totais.is?.tributo || totais.IS?.tributo || 0;
+    cbs = 'R$ ' + cbsVal.toFixed(2);
+    ibs = 'R$ ' + ibsVal.toFixed(2);
+    const t = cbsVal + ibsVal + isVal;
+    total = 'R$ ' + t.toFixed(2);
+    stats.soma += t;
+  } catch {}
+
+  grid.innerHTML = `
+    <div class="resultado-item"><div class="resultado-label">CBS</div><div class="resultado-value">${cbs}</div><div class="resultado-sub">Contribuição s/ Bens e Serviços</div></div>
+    <div class="resultado-item"><div class="resultado-label">IBS</div><div class="resultado-value">${ibs}</div><div class="resultado-sub">Imposto s/ Bens e Serviços</div></div>
+    <div class="resultado-item"><div class="resultado-label">Total</div><div class="resultado-value highlight">${total}</div><div class="resultado-sub">CBS + IBS${warn ? ' ⚠ simulado' : ''}</div></div>
+  `;
+
+  $('resultado-json').textContent = JSON.stringify(data, null, 2);
+  $('resultado-json').classList.remove('visible');
+}
+
+function toggleJSON() {
+  $('resultado-json').classList.toggle('visible');
+}
+
+function copiarJSON() {
+  if (!ultimoJSON) return;
+  navigator.clipboard.writeText(JSON.stringify(ultimoJSON, null, 2));
+  toast('JSON copiado para a área de transferência');
+}
+
+function exportarJSON() {
+  const itens = coletarItens();
+  const body = {
+    id: $('op-id').value || gerarId(),
+    versao: $('op-versao').value || '1.0.0',
+    municipio: parseInt($('op-municipio').value) || 0,
+    itens
+  };
+  const blob = new Blob([JSON.stringify(body, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `rtc-operacao-${Date.now()}.json`;
+  a.click();
+  toast('JSON exportado');
+}
+
+// ── Histórico ──
+function registrarHistorico(id, ok, data, body) {
+  stats.total++;
+  if (ok) stats.ok++; else stats.err++;
+  historico.unshift({ id, ok, data, body, ts: new Date() });
+  $('history-badge').textContent = historico.length;
+  atualizarDash();
+}
+
+function renderHistorico() {
+  const el = $('historico-lista');
+  if (!historico.length) {
+    el.innerHTML = '<div class="empty-state" style="padding:4rem 1rem;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg><p>Nenhum cálculo no histórico</p></div>';
+    return;
+  }
+  el.innerHTML = historico.map((h, i) => `
+    <div class="history-item" onclick="verDetalheHistorico(${i})">
+      <div class="history-icon">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+      </div>
+      <div class="history-info">
+        <div class="history-id">${h.id}</div>
+        <div class="history-meta">${h.ts.toLocaleString('pt-BR')} · ${(h.body?.itens?.length||0)} item(ns) · Mun. ${h.body?.municipio||'—'}</div>
+      </div>
+      <span class="badge-status ${h.ok ? 'badge-ok' : 'badge-err'}">${h.ok ? '200 OK' : 'ERRO'}</span>
+    </div>
+  `).join('');
+}
+
+function verDetalheHistorico(i) {
+  const h = historico[i];
+  if (!h.data) { toast('Sem resposta disponível', 'error'); return; }
+  ultimoJSON = h.data;
+  navegarPara('calculadora');
+  exibirResultado(h.data, h.id, null);
+  toast('Resultado restaurado');
+}
+
+function limparHistorico() {
+  historico = [];
+  stats = { total: 0, ok: 0, err: 0, soma: 0 };
+  $('history-badge').textContent = 0;
+  atualizarDash();
+  renderHistorico();
+  toast('Histórico limpo');
+}
+
+function atualizarDash() {
+  $('kpi-total').textContent = 'R$ ' + stats.soma.toFixed(2);
+  $('kpi-ops').textContent = stats.total;
+  $('kpi-ok').textContent = stats.ok;
+  $('kpi-err').textContent = stats.err;
+  $('kpi-ok-pct').textContent = stats.total ? Math.round(stats.ok/stats.total*100)+'% sucesso' : '—';
+  const dash = $('dash-history');
+  const slice = historico.slice(0, 4);
+  if (!slice.length) {
+    dash.innerHTML = '<div class="empty-state"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg><p>Nenhum cálculo realizado ainda</p></div>';
+  } else {
+    dash.innerHTML = slice.map((h,i) => `
+      <div class="history-item" onclick="verDetalheHistorico(${i})">
+        <div class="history-info">
+          <div class="history-id">${h.id}</div>
+          <div class="history-meta">${h.ts.toLocaleTimeString('pt-BR')}</div>
+        </div>
+        <span class="badge-status ${h.ok?'badge-ok':'badge-err'}">${h.ok?'OK':'ERRO'}</span>
+      </div>
+    `).join('');
+  }
+}
+
+// ── Alíquotas ──
+document.querySelectorAll('.tab[data-aliq]').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.tab[data-aliq]').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+    aliqTab = tab.dataset.aliq;
+    $('aliq-uf-group').style.display = aliqTab === 'uf' ? '' : 'none';
+    $('aliq-mun-group').style.display = aliqTab === 'municipio' ? '' : 'none';
+  });
+});
+
+async function consultarAliquota() {
+  const data = $('aliq-data').value;
+  if (!data) { toast('Informe a data de referência', 'error'); return; }
+  let url = `${getBaseURL()}/calculadora/dados-abertos/`;
+  if (aliqTab === 'uniao') url += `aliquota-uniao?data=${data}`;
+  else if (aliqTab === 'uf') {
+    const cod = $('aliq-uf-cod').value;
+    if (!cod) { toast('Informe o código da UF', 'error'); return; }
+    url += `aliquota-uf?codigoUf=${cod}&data=${data}`;
+  } else {
+    const cod = $('aliq-mun-cod').value;
+    if (!cod) { toast('Informe o código do município', 'error'); return; }
+    url += `aliquota-municipio?codigoMunicipio=${cod}&data=${data}`;
+  }
+  setLoading('loading-aliquota', true);
+  try {
+    const res = await fetch(url, { headers: getHeaders() });
+    const d = await res.json();
+    setLoading('loading-aliquota', false);
+    if (!res.ok) throw new Error(d.title || JSON.stringify(d));
+    renderAliquota(d);
+    toast('Alíquota consultada');
+  } catch (e) {
+    setLoading('loading-aliquota', false);
+    toast('Erro: ' + e.message, 'error');
+  }
+}
+
+function renderAliquota(d) {
+  const box = $('aliquota-resultado');
+  box.classList.add('visible');
+  const tabs = {'CBSUNIAO':'CBS União','IBSUF':'IBS UF','IBSMUN':'IBS Município'};
+  const itens = (d.aliquotas || [d]).map(a => `
+    <div class="aliq-item">
+      <div class="aliq-label">${tabs[a.tipo]||a.tipo||'Alíquota'}</div>
+      <div class="aliq-val">${a.aliquota != null ? (a.aliquota*100).toFixed(4)+'%' : JSON.stringify(a)}</div>
+    </div>
+  `).join('');
+  box.innerHTML = `<div style="font-family:var(--font-mono);font-size:11px;color:var(--green-300);margin-bottom:.5rem;">Data: ${d.data||$('aliq-data').value}</div><div class="aliq-grid">${itens||'<div class="aliq-item"><div class="aliq-val">'+JSON.stringify(d)+'</div></div>'}</div>`;
+}
+
+// ── NCM/NBS ──
+document.querySelectorAll('.tab[data-ncm]').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.tab[data-ncm]').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+    ncmTab = tab.dataset.ncm;
+    $('ncm-label').textContent = ncmTab === 'ncm' ? 'Código NCM' : 'Código NBS';
+    $('ncm-hint').textContent = ncmTab === 'ncm' ? '8 dígitos — Mercadorias' : '9 dígitos — Serviços';
+    $('ncm-codigo').placeholder = ncmTab === 'ncm' ? 'ex: 24021000' : 'ex: 109052100';
+  });
+});
+
+async function consultarNCMNBS() {
+  const cod = $('ncm-codigo').value.trim();
+  const data = $('ncm-data').value;
+  if (!cod) { toast('Informe o código', 'error'); return; }
+  if (!data) { toast('Informe a data de referência', 'error'); return; }
+  const param = ncmTab === 'ncm' ? 'ncm' : 'nbs';
+  const url = `${getBaseURL()}/calculadora/dados-abertos/${ncmTab}?${param}=${cod}&data=${data}`;
+  setLoading('loading-ncm', true);
+  try {
+    const res = await fetch(url, { headers: getHeaders() });
+    const d = await res.json();
+    setLoading('loading-ncm', false);
+    if (!res.ok) throw new Error(d.title || JSON.stringify(d));
+    renderNCM(d);
+    toast('Consulta realizada');
+  } catch (e) {
+    setLoading('loading-ncm', false);
+    toast('Erro: ' + e.message, 'error');
+  }
+}
+
+function renderNCM(d) {
+  const wrap = $('ncm-resultado');
+  wrap.style.display = 'block';
+  const campos = Object.entries(d).filter(([k]) => !['classificacoes','itens'].includes(k));
+  $('ncm-dados').innerHTML = campos.map(([k,v]) => `
+    <div class="dado-card"><div class="dado-key">${k}</div><div class="dado-val">${v??'—'}</div></div>
+  `).join('');
+}
+
+// ── Municípios ──
+async function consultarMunicipios() {
+  const uf = $('mun-uf').value;
+  if (!uf) { toast('Selecione uma UF', 'error'); return; }
+  setLoading('loading-mun', true);
+  try {
+    const res = await fetch(`${getBaseURL()}/calculadora/dados-abertos/ufs/municipios?siglaUf=${uf}`, { headers: getHeaders() });
+    const d = await res.json();
+    setLoading('loading-mun', false);
+    if (!res.ok) throw new Error(d.title || JSON.stringify(d));
+    const wrap = $('mun-resultado');
+    wrap.style.display = 'block';
+    $('mun-count').textContent = `${d.length} município(s) encontrado(s) — UF: ${uf}`;
+    $('mun-tbody').innerHTML = d.map(m => `<tr><td style="font-family:var(--font-mono);font-size:12px;">${m.codigo||m.codigoMunicipio||'—'}</td><td>${m.nome||m.descricao||JSON.stringify(m)}</td></tr>`).join('');
+    toast(`${d.length} municípios carregados`);
+  } catch (e) {
+    setLoading('loading-mun', false);
+    toast('Erro: ' + e.message, 'error');
+  }
+}
+
+// ── Classificações ──
+document.querySelectorAll('.tab[data-class]').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.tab[data-class]').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+    classTab = tab.dataset.class;
+  });
+});
+
+async function consultarClassificacoes() {
+  const data = $('class-data').value;
+  if (!data) { toast('Informe a data de referência', 'error'); return; }
+  const cst = $('class-cst').value.trim();
+  let url;
+  if (classTab === 'cbs-ibs') {
+    url = cst
+      ? `${getBaseURL()}/calculadora/dados-abertos/classificacoes-tributarias/cbs-ibs/${cst}?data=${data}`
+      : `${getBaseURL()}/calculadora/dados-abertos/classificacoes-tributarias/cbs-ibs?data=${data}`;
+  } else {
+    url = cst
+      ? `${getBaseURL()}/calculadora/dados-abertos/classificacoes-tributarias/imposto-seletivo/${cst}?data=${data}`
+      : `${getBaseURL()}/calculadora/dados-abertos/classificacoes-tributarias/imposto-seletivo?data=${data}`;
+  }
+  setLoading('loading-class', true);
+  try {
+    const res = await fetch(url, { headers: getHeaders() });
+    const d = await res.json();
+    setLoading('loading-class', false);
+    if (!res.ok) throw new Error(d.title || JSON.stringify(d));
+    const arr = Array.isArray(d) ? d : [d];
+    $('class-resultado').style.display = 'block';
+    $('class-count').textContent = `${arr.length} classificação(ões)`;
+    $('class-tbody').innerHTML = arr.map(c => `
+      <tr>
+        <td style="font-family:var(--font-mono);font-size:12px;">${c.cClassTrib||c.codigo||'—'}</td>
+        <td>${c.descricao||c.nome||'—'}</td>
+        <td><span class="badge-status badge-ok" style="font-size:9px;">${c.tributoTipo||classTab.toUpperCase()}</span></td>
+        <td style="font-family:var(--font-mono);font-size:12px;">${c.cst||'—'}</td>
+      </tr>
+    `).join('');
+    toast(`${arr.length} classificações carregadas`);
+  } catch (e) {
+    setLoading('loading-class', false);
+    toast('Erro: ' + e.message, 'error');
+  }
+}
+
+// ── Versão ──
+async function consultarVersao() {
+  setLoading('loading-versao', true);
+  try {
+    const res = await fetch(`${getBaseURL()}/calculadora/dados-abertos/versao`, { headers: getHeaders() });
+    const d = await res.json();
+    setLoading('loading-versao', false);
+    if (!res.ok) throw new Error(d.title || JSON.stringify(d));
+    $('versao-info').innerHTML = `
+      <div class="dado-grid">
+        <div class="dado-card"><div class="dado-key">Versão App</div><div class="dado-val" style="font-family:var(--font-mono)">${d.versaoApp||'—'}</div></div>
+        <div class="dado-card"><div class="dado-key">Versão DB</div><div class="dado-val" style="font-family:var(--font-mono)">${d.versaoDb||'—'}</div></div>
+        <div class="dado-card"><div class="dado-key">Ambiente</div><div class="dado-val" style="font-family:var(--font-mono)">${d.ambiente||'—'}</div></div>
+        <div class="dado-card"><div class="dado-key">Data versão DB</div><div class="dado-val">${d.dataVersaoDb||'—'}</div></div>
+        <div class="dado-card" style="grid-column:1/-1"><div class="dado-key">Descrição DB</div><div class="dado-val">${d.descricaoVersaoDb||'—'}</div></div>
+      </div>
+    `;
+    $('footer-versao').textContent = `v${d.versaoApp||'—'} · DB ${d.versaoDb||'—'}`;
+    toast('Versão consultada');
+  } catch (e) {
+    setLoading('loading-versao', false);
+    $('versao-info').innerHTML = `<div class="empty-state" style="padding:3rem;"><p>Erro ao consultar: ${e.message}</p></div>`;
+    toast('Erro: ' + e.message, 'error');
+  }
+}
+
+// ── Testar conexão ──
+async function testarConexao() {
+  toast('Testando conexão...');
+  try {
+    const res = await fetch(`${getBaseURL()}/calculadora/dados-abertos/versao`, { headers: getHeaders(), signal: AbortSignal.timeout(8000) });
+    if (res.ok) {
+      const d = await res.json();
+      $('api-status-text').textContent = `v${d.versaoApp} conectada`;
+      toast(`API online — ${d.versaoApp}`);
+    } else {
+      throw new Error(`HTTP ${res.status}`);
+    }
+  } catch (e) {
+    $('api-status-text').textContent = 'Sem conexão';
+    toast('Falha na conexão: ' + e.message, 'error');
+  }
+}
+
+// ── Config ──
+function salvarConfig() {
+  const url = $('cfg-url').value;
+  if (url) $('api-base-url').value = url;
+  toast('Configurações salvas');
+}
+
+function limparTudo() {
+  limparHistorico();
+  limparFormulario();
+  toast('Sessão limpa');
+}
+
+// Sync cfg url
+$('cfg-url') && ($('cfg-url').value = $('api-base-url').value);
+
+// Data padrão = hoje em vários inputs
+const hoje = new Date().toISOString().slice(0,10);
+['aliq-data','ncm-data','class-data'].forEach(id => $(id) && ($(id).value = hoje));
+$('op-data') && ($('op-data').value = new Date().toISOString().slice(0,16));
+
+// ══════════════════════════════════════════════
+// ── MÓDULO DE EMPRESAS ──
+// ══════════════════════════════════════════════
+
+let empresas = [];
+let empresaAtivaId = null;
+let empEditando = null;
+
+const CORES_AV = ['av-1','av-2','av-3','av-4','av-5','av-6'];
+
+function getAvatarCor(idx) {
+  return CORES_AV[idx % CORES_AV.length];
+}
+
+function getIniciais(nome) {
+  const parts = (nome || '').trim().split(/\s+/);
+  if (parts.length >= 2) return (parts[0][0] + parts[parts.length-1][0]).toUpperCase();
+  return (nome || '??').slice(0,2).toUpperCase();
+}
+
+function formatCNPJ(v) {
+  v = v.replace(/\D/g,'').slice(0,14);
+  if (v.length > 12) v = v.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/,'$1.$2.$3/$4-$5');
+  else if (v.length > 8) v = v.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})/,'$1.$2.$3/$4');
+  else if (v.length > 5) v = v.replace(/^(\d{2})(\d{3})(\d{3})/,'$1.$2.$3');
+  else if (v.length > 2) v = v.replace(/^(\d{2})(\d{3})/,'$1.$2');
+  return v;
+}
+
+$('emp-cnpj').addEventListener('input', e => {
+  e.target.value = formatCNPJ(e.target.value);
+});
+
+$('emp-cep').addEventListener('input', e => {
+  let v = e.target.value.replace(/\D/g,'').slice(0,8);
+  if (v.length > 5) v = v.replace(/^(\d{5})(\d)/,'$1-$2');
+  e.target.value = v;
+});
+
+// ── Abrir/fechar modal ──
+function abrirModalEmpresa(id = null) {
+  empEditando = id;
+  const emp = id ? empresas.find(e => e.id === id) : null;
+  $('modal-empresa-titulo').textContent = emp ? 'Editar empresa' : 'Nova empresa';
+
+  // Preencher campos
+  $('emp-edit-id').value = id || '';
+  $('emp-razao').value = emp?.razao || '';
+  $('emp-fantasia').value = emp?.fantasia || '';
+  $('emp-cnpj').value = emp?.cnpj || '';
+  $('emp-ie').value = emp?.ie || '';
+  $('emp-im').value = emp?.im || '';
+  $('emp-uf').value = emp?.uf || '';
+  $('emp-municipio').value = emp?.municipio || '';
+  $('emp-endereco').value = emp?.endereco || '';
+  $('emp-cidade').value = emp?.cidade || '';
+  $('emp-cep').value = emp?.cep || '';
+  $('emp-regime').value = emp?.regime || '';
+  $('emp-atividade').value = emp?.atividade || '';
+  $('emp-cst-padrao').value = emp?.cstPadrao || '';
+  $('emp-ctrib-padrao').value = emp?.ctribPadrao || '';
+  $('emp-ncm-padrao').value = emp?.ncmPadrao || '';
+  $('emp-contribuinte').value = emp?.contribuinte || 'SIM';
+  $('emp-api-url').value = emp?.apiUrl || '';
+  $('emp-api-token').value = emp?.apiToken || '';
+  $('emp-notas').value = emp?.notas || '';
+
+  $('modal-empresa-backdrop').classList.add('open');
+  setTimeout(() => $('emp-razao').focus(), 100);
+}
+
+function fecharModalEmpresa() {
+  $('modal-empresa-backdrop').classList.remove('open');
+  empEditando = null;
+}
+
+function fecharModalEmpresaSeBg(e) {
+  if (e.target === $('modal-empresa-backdrop')) fecharModalEmpresa();
+}
+
+// ── Salvar empresa ──
+function salvarEmpresa() {
+  const razao = $('emp-razao').value.trim();
+  const cnpj = $('emp-cnpj').value.trim();
+  const uf = $('emp-uf').value;
+  const municipio = $('emp-municipio').value;
+  const regime = $('emp-regime').value;
+
+  if (!razao) { toast('Informe a razão social', 'error'); $('emp-razao').focus(); return; }
+  if (!cnpj) { toast('Informe o CNPJ', 'error'); $('emp-cnpj').focus(); return; }
+
+  const id = empEditando || ('emp_' + Date.now());
+  const idx = empEditando ? empresas.findIndex(e => e.id === empEditando) : -1;
+
+  const emp = {
+    id,
+    razao,
+    fantasia: $('emp-fantasia').value.trim(),
+    cnpj,
+    ie: $('emp-ie').value.trim(),
+    im: $('emp-im').value.trim(),
+    uf,
+    municipio: municipio ? parseInt(municipio) : null,
+    endereco: $('emp-endereco').value.trim(),
+    cidade: $('emp-cidade').value.trim(),
+    cep: $('emp-cep').value.trim(),
+    regime,
+    atividade: $('emp-atividade').value,
+    cstPadrao: $('emp-cst-padrao').value.trim(),
+    ctribPadrao: $('emp-ctrib-padrao').value.trim(),
+    ncmPadrao: $('emp-ncm-padrao').value.trim(),
+    contribuinte: $('emp-contribuinte').value,
+    apiUrl: $('emp-api-url').value.trim(),
+    apiToken: $('emp-api-token').value.trim(),
+    notas: $('emp-notas').value.trim(),
+    criadoEm: empEditando ? (empresas[idx]?.criadoEm || new Date()) : new Date(),
+    cor: empEditando ? (empresas[idx]?.cor) : getAvatarCor(empresas.length),
+  };
+
+  if (idx >= 0) {
+    empresas[idx] = emp;
+    toast(`Empresa "${emp.fantasia || emp.razao}" atualizada`);
+  } else {
+    empresas.push(emp);
+    // Se for a primeira, seleciona automaticamente
+    if (empresas.length === 1) selecionarEmpresa(emp.id, true);
+    toast(`Empresa "${emp.fantasia || emp.razao}" cadastrada`);
+  }
+
+  fecharModalEmpresa();
+  renderEmpresas();
+  renderEmpDropdown();
+  atualizarEmpresaBadges();
+}
+
+// ── Selecionar empresa ativa ──
+function selecionarEmpresa(id, silencioso = false) {
+  empresaAtivaId = id;
+  const emp = empresas.find(e => e.id === id);
+  if (!emp) return;
+
+  // Atualiza URL da API se a empresa tiver URL própria
+  if (emp.apiUrl) {
+    $('api-base-url').value = emp.apiUrl;
+  }
+
+  // Atualiza header
+  const iniciais = getIniciais(emp.fantasia || emp.razao);
+  $('hdr-emp-avatar').textContent = iniciais;
+  $('hdr-emp-avatar').className = `emp-avatar ${emp.cor}`;
+  $('hdr-emp-nome').innerHTML = emp.fantasia || emp.razao;
+  $('hdr-emp-cnpj').textContent = emp.cnpj || 'CNPJ não informado';
+
+  // Atualiza barra ativa
+  const bar = $('empresa-ativa-bar');
+  bar.classList.add('visible');
+  $('eab-avatar').textContent = iniciais;
+  $('eab-avatar').className = `eab-avatar ${emp.cor}`;
+  $('eab-nome').textContent = emp.fantasia || emp.razao;
+  $('eab-detalhe').textContent = `CNPJ ${emp.cnpj || '—'} · ${emp.uf || '—'} · Mun. ${emp.municipio || '—'}`;
+  $('eab-right').textContent = emp.regime || 'Regime não definido';
+
+  // Atualiza campos da calculadora com padrões desta empresa
+  if (emp.uf) $('op-uf').value = emp.uf;
+  if (emp.municipio) $('op-municipio').value = emp.municipio;
+
+  // KPIs da página de empresas
+  atualizarKpisEmpresas();
+  renderEmpresas();
+  renderEmpDropdown();
+
+  if (!silencioso) toast(`Empresa "${emp.fantasia || emp.razao}" ativada`);
+}
+
+// ── Excluir empresa ──
+function excluirEmpresa(id) {
+  const emp = empresas.find(e => e.id === id);
+  if (!emp) return;
+  if (!confirm(`Excluir a empresa "${emp.razao}"?`)) return;
+  empresas = empresas.filter(e => e.id !== id);
+  if (empresaAtivaId === id) {
+    empresaAtivaId = empresas[0]?.id || null;
+    if (empresaAtivaId) selecionarEmpresa(empresaAtivaId, true);
+    else {
+      // Nenhuma empresa — limpa header
+      $('hdr-emp-avatar').textContent = '—';
+      $('hdr-emp-avatar').className = 'emp-avatar av-1';
+      $('hdr-emp-nome').innerHTML = '<span class="emp-none">Nenhuma empresa</span>';
+      $('hdr-emp-cnpj').textContent = 'Selecione ou cadastre';
+      $('empresa-ativa-bar').classList.remove('visible');
+    }
+  }
+  renderEmpresas();
+  renderEmpDropdown();
+  atualizarEmpresaBadges();
+  toast(`Empresa excluída`);
+}
+
+// ── Render lista de empresas ──
+function renderEmpresas() {
+  const lista = $('empresas-lista');
+  atualizarKpisEmpresas();
+  if (!empresas.length) {
+    lista.innerHTML = `<div class="empty-state" style="padding:4rem 1rem;">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="width:44px;height:44px;margin:0 auto 14px;display:block;opacity:.35;"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+      <p style="font-family:var(--font-mono);font-size:12px;color:#7a9e7e;">Nenhuma empresa cadastrada ainda</p>
+      <p style="font-size:12px;color:#aac8ae;margin-top:6px;">Clique em "Nova empresa" para começar</p>
+    </div>`;
+    return;
+  }
+  lista.innerHTML = empresas.map(emp => {
+    const ativa = emp.id === empresaAtivaId;
+    const iniciais = getIniciais(emp.fantasia || emp.razao);
+    return `
+      <div class="empresa-card${ativa ? ' ativa' : ''}">
+        ${ativa ? '<span class="badge-ativa">● Ativa</span>' : ''}
+        <div class="ec-avatar ${emp.cor}">${iniciais}</div>
+        <div class="ec-info">
+          <div class="ec-nome">${emp.razao}</div>
+          ${emp.fantasia ? `<div style="font-size:12px;color:#6a8e6e;margin-bottom:4px;">${emp.fantasia}</div>` : ''}
+          <div class="ec-meta">
+            <span>${emp.cnpj || 'CNPJ —'}</span>
+            <span>${emp.uf || '—'}${emp.municipio ? ' · Mun. '+emp.municipio : ''}</span>
+            <span>${emp.regime || 'Regime —'}</span>
+            ${emp.atividade ? `<span>${emp.atividade}</span>` : ''}
+          </div>
+          ${emp.apiUrl ? `<div style="font-family:var(--font-mono);font-size:10px;color:var(--green-500);margin-top:5px;">
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-1px;margin-right:3px;"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            API própria: ${emp.apiUrl}
+          </div>` : ''}
+          ${emp.notas ? `<div style="font-size:12px;color:#8aaa8e;margin-top:5px;font-style:italic;">"${emp.notas.slice(0,80)}${emp.notas.length>80?'…':''}"</div>` : ''}
+        </div>
+        <div class="ec-actions">
+          ${!ativa ? `<button class="btn btn-primary btn-sm" onclick="selecionarEmpresa('${emp.id}')">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+            Ativar
+          </button>` : `<span style="font-family:var(--font-mono);font-size:11px;color:var(--green-600);padding:0 4px;">Ativa</span>`}
+          <button class="btn btn-secondary btn-sm" onclick="abrirModalEmpresa('${emp.id}')">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+            Editar
+          </button>
+          <button class="btn btn-danger" onclick="excluirEmpresa('${emp.id}')">✕</button>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+// ── Render dropdown do header ──
+function renderEmpDropdown() {
+  const list = $('emp-dropdown-list');
+  $('emp-dropdown-count').textContent = empresas.length;
+  if (!empresas.length) {
+    list.innerHTML = '<div style="padding:16px;text-align:center;font-family:var(--font-mono);font-size:11px;color:var(--green-500);">Nenhuma empresa cadastrada</div>';
+    return;
+  }
+  list.innerHTML = empresas.map(emp => {
+    const sel = emp.id === empresaAtivaId;
+    return `
+      <div class="emp-dropdown-item${sel ? ' selected' : ''}" onclick="selecionarEmpresa('${emp.id}'); fecharEmpDropdown();">
+        <div class="dd-avatar ${emp.cor}">${getIniciais(emp.fantasia || emp.razao)}</div>
+        <div class="dd-info">
+          <div class="dd-nome">${emp.fantasia || emp.razao}</div>
+          <div class="dd-meta">${emp.cnpj || '—'} · ${emp.uf || '—'}${emp.municipio ? ' · '+emp.municipio : ''}</div>
+        </div>
+        <div class="dd-check">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function toggleEmpDropdown() {
+  $('emp-dropdown').classList.toggle('open');
+}
+
+function fecharEmpDropdown() {
+  $('emp-dropdown').classList.remove('open');
+}
+
+// Fecha dropdown ao clicar fora
+document.addEventListener('click', e => {
+  if (!e.target.closest('#emp-dropdown') && !e.target.closest('#empresa-selector-btn')) {
+    fecharEmpDropdown();
+  }
+});
+
+// ── KPIs da página ──
+function atualizarKpisEmpresas() {
+  $('emp-kpi-total').textContent = empresas.length;
+  const ativa = empresas.find(e => e.id === empresaAtivaId);
+  if (ativa) {
+    $('emp-kpi-ativa').textContent = ativa.fantasia || ativa.razao;
+    $('emp-kpi-ativa-cnpj').textContent = ativa.cnpj || 'CNPJ não informado';
+    $('emp-kpi-regime').textContent = ativa.regime || '—';
+    $('emp-kpi-uf').textContent = ativa.uf ? `UF: ${ativa.uf}${ativa.municipio ? ' · Mun. '+ativa.municipio : ''}` : 'UF não definida';
+  } else {
+    $('emp-kpi-ativa').textContent = '—';
+    $('emp-kpi-ativa-cnpj').textContent = 'Nenhuma selecionada';
+    $('emp-kpi-regime').textContent = '—';
+    $('emp-kpi-uf').textContent = 'UF não definida';
+  }
+}
+
+function atualizarEmpresaBadges() {
+  $('empresas-badge').textContent = empresas.length;
+}
+
+// ── getBaseURL e getHeaders agora respeitam empresa ativa ──
+// Redefine as funções existentes para considerar a empresa ativa
+const _getBaseURL_orig = getBaseURL;
+window.getBaseURL = function() {
+  const ativa = empresas.find(e => e.id === empresaAtivaId);
+  if (ativa?.apiUrl) return ativa.apiUrl.replace(/\/$/, '');
+  return ($('api-base-url').value || 'https://minha-api.com.br/api').replace(/\/$/, '');
+};
+
+window.getHeaders = function() {
+  const ativa = empresas.find(e => e.id === empresaAtivaId);
+  const token = ativa?.apiToken || ($('cfg-token') ? $('cfg-token').value : '');
+  const h = { 'Content-Type': 'application/json' };
+  if (token) h['Authorization'] = token;
+  return h;
+};
+
+// ── Registrar histórico também salva empresa ──
+const _registrarHistorico_orig = registrarHistorico;
+window.registrarHistorico = function(id, ok, data, body) {
+  stats.total++;
+  if (ok) stats.ok++; else stats.err++;
+  const ativa = empresas.find(e => e.id === empresaAtivaId);
+  historico.unshift({
+    id, ok, data, body,
+    ts: new Date(),
+    empresa: ativa ? { id: ativa.id, nome: ativa.fantasia || ativa.razao, cnpj: ativa.cnpj, cor: ativa.cor } : null
+  });
+  $('history-badge').textContent = historico.length;
+  atualizarDash();
+};
+
+// ── Patch no renderHistorico para mostrar empresa ──
+const _renderHistorico_orig = renderHistorico;
+window.renderHistorico = function() {
+  const el = $('historico-lista');
+  if (!historico.length) {
+    el.innerHTML = '<div class="empty-state" style="padding:4rem 1rem;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg><p>Nenhum cálculo no histórico</p></div>';
+    return;
+  }
+  el.innerHTML = historico.map((h, i) => `
+    <div class="history-item" onclick="verDetalheHistorico(${i})">
+      <div class="history-icon">
+        ${h.empresa
+          ? `<div style="width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:700;font-size:12px;color:#fff;" class="${h.empresa.cor}">${getIniciais(h.empresa.nome)}</div>`
+          : `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>`
+        }
+      </div>
+      <div class="history-info">
+        <div class="history-id">${h.id}</div>
+        <div class="history-meta">${h.ts.toLocaleString('pt-BR')} · ${(h.body?.itens?.length||0)} item(ns)${h.empresa ? ' · <b style="color:var(--green-700)">'+h.empresa.nome+'</b>' : ''}</div>
+      </div>
+      <span class="badge-status ${h.ok ? 'badge-ok' : 'badge-err'}">${h.ok ? '200 OK' : 'ERRO'}</span>
+    </div>
+  `).join('');
+};
+
+// ── Patch adicionarItem para usar padrões da empresa ──
+const _adicionarItem_orig = adicionarItem;
+window.adicionarItem = function(dados = {}) {
+  const ativa = empresas.find(e => e.id === empresaAtivaId);
+  const defaults = {
+    ncm: ativa?.ncmPadrao || '',
+    cst: ativa?.cstPadrao || '',
+    cClassTrib: ativa?.ctribPadrao || '',
+    ...dados
+  };
+  _adicionarItem_orig(defaults);
+};
+
+// Inicializa KPIs de empresas
+atualizarKpisEmpresas();
+
+</script>
+</body>
+</html>
